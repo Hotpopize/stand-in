@@ -1,0 +1,2 @@
+httpx>=0.27        # only for the optional LLM render path
+python-dotenv>=1.0  # optional

@@ -1,0 +1,335 @@
+<title>Stand-In Demo</title>
+<style>
+  /* Layout: a contact's phone beside a ground-truth panel; stacks to one column on phones. */
+  :root{
+    --bg:#eef0f4; --surface:#ffffff; --surface-2:#e7eaf0; --panel:#f6f7f9;
+    --ink:#1a2330; --ink-soft:#5a6576; --line:#d6dbe3;
+    --accent:#2b5fd0; --on-accent:#ffffff; --accent-soft:#dde6fa;
+    --safe:#1d8a54; --safe-soft:#d8efe2; --warn:#b26a16; --warn-soft:#f6e8d2;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0e1319; --surface:#161d27; --surface-2:#212a36; --panel:#131a23;
+    --ink:#e7eaf0; --ink-soft:#97a2b2; --line:#2a3440;
+    --accent:#5f9bff; --on-accent:#0a1120; --accent-soft:#17304f;
+    --safe:#49cf8e; --safe-soft:#123528; --warn:#e4a74a; --warn-soft:#3a2c13;
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0e1319; --surface:#161d27; --surface-2:#212a36; --panel:#131a23;
+    --ink:#e7eaf0; --ink-soft:#97a2b2; --line:#2a3440;
+    --accent:#5f9bff; --on-accent:#0a1120; --accent-soft:#17304f;
+    --safe:#49cf8e; --safe-soft:#123528; --warn:#e4a74a; --warn-soft:#3a2c13;
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5}
+  .wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:28px}
+
+  header.top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+  h1{font-size:clamp(1.5rem,1.1rem+1.6vw,2rem);font-weight:600;letter-spacing:-.02em;margin:0;text-wrap:balance}
+  .sub{color:var(--ink-soft);margin:.35rem 0 0;max-width:60ch;font-size:.95rem}
+  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 .3rem}
+  .theme{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;background:var(--surface);color:var(--ink-soft);border:1px solid var(--line);border-radius:999px;padding:.4rem .7rem;cursor:pointer}
+  .theme:hover{color:var(--ink)}
+
+  /* control bar */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+  .toggle{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .toggle .meta{min-width:0}
+  .toggle .k{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .toggle .v{font-weight:600;font-size:.98rem}
+  .switch{margin-left:auto;flex:none;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font-family:var(--mono);font-size:.78rem;border-radius:999px;padding:.45rem .9rem;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+  .switch[data-on="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .switch.warn[data-on="true"]{background:var(--warn);border-color:var(--warn);color:#fff}
+  .switch:focus-visible,.chip:focus-visible,.send:focus-visible,.theme:focus-visible,.ghost:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:18px;align-items:start}
+  @media (max-width:760px){.stage{grid-template-columns:1fr}}
+
+  /* phone */
+  .phone{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;display:flex;flex-direction:column;min-height:460px}
+  .phone .bar{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600;flex:none}
+  .who{min-width:0}
+  .who .n{font-weight:600;font-size:.95rem;line-height:1.2}
+  .who .s{font-size:.75rem;color:var(--ink-soft)}
+  .caption{font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-left:auto;text-align:right}
+
+  .thread{flex:1;padding:16px 14px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:52vh}
+  .row{display:flex}
+  .row.out{justify-content:flex-end}
+  .bubble{max-width:78%;padding:.5rem .7rem;border-radius:14px;font-size:.9rem;word-wrap:break-word}
+  .row.in .bubble{background:var(--surface-2);border-bottom-left-radius:5px}
+  .row.out .bubble{background:var(--accent);color:var(--on-accent);border-bottom-right-radius:5px}
+  .tag{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;margin-top:4px;opacity:.9}
+  .row.out .tag{justify-content:flex-end}
+  .typing .bubble{color:var(--ink-soft)}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin:0 1px;animation:b 1s infinite}
+  .dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+  @keyframes b{0%,60%,100%{opacity:.3}30%{opacity:1}}
+  @media (prefers-reduced-motion:reduce){.dot{animation:none}}
+
+  .composer{border-top:1px solid var(--line);padding:10px 12px;background:var(--panel)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .chip{font-size:.78rem;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:.35rem .6rem;cursor:pointer}
+  .chip:hover{border-color:var(--accent);color:var(--accent)}
+  .inrow{display:flex;gap:8px}
+  .inrow input{flex:1;min-width:0;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:.5rem .7rem;font:inherit;font-size:.88rem}
+  .send{flex:none;background:var(--accent);color:var(--on-accent);border:none;border-radius:10px;padding:.5rem .9rem;font-family:var(--mono);font-size:.8rem;cursor:pointer}
+
+  /* truth panel */
+  .truth{display:flex;flex-direction:column;gap:14px}
+  .status{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+  .stat .k{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+  .stat .v{font-weight:600;margin-top:2px;display:flex;align-items:center;gap:7px}
+  .pip{width:9px;height:9px;border-radius:50%;flex:none}
+  .belief{grid-column:1/-1;border-radius:12px;padding:12px 14px;font-size:.9rem;border:1px solid var(--line);background:var(--panel)}
+  .belief[data-state="deceived"]{background:var(--warn-soft);border-color:var(--warn)}
+  .belief[data-state="known"]{background:var(--safe-soft);border-color:var(--safe)}
+  .belief[data-state="idle"]{color:var(--ink-soft)}
+  .belief b{font-weight:600}
+
+  .logwrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .logwrap h2{margin:0;font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);padding:11px 14px;border-bottom:1px solid var(--line)}
+  .log{list-style:none;margin:0;padding:8px;display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow-y:auto;font-family:var(--mono);font-size:.76rem}
+  .log li{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:6px 8px;border-radius:8px;background:var(--panel)}
+  .log .t{color:var(--ink-soft)}
+  .log .who-tag{font-weight:600}
+  .log .body{min-width:0}
+  .log .rule{color:var(--ink-soft);display:block;margin-top:2px}
+  .log li.warn{background:var(--warn-soft)}
+  .log li.warn .rule{color:var(--warn)}
+  .log .empty{color:var(--ink-soft);padding:14px;text-align:center;background:transparent}
+
+  .ghost{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:.55rem .8rem;font-family:var(--mono);font-size:.78rem;cursor:pointer}
+  .ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .rowbtns{display:flex;gap:8px;flex-wrap:wrap}
+
+  .rules{margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .rules h2{margin:0 0 4px;font-size:1rem;font-weight:600}
+  .rules p.lead{margin:0 0 12px;color:var(--ink-soft);font-size:.9rem;max-width:68ch}
+  .rulegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .rule-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 13px}
+  .rule-card .n{font-family:var(--mono);font-size:.7rem;color:var(--accent)}
+  .rule-card p{margin:.25rem 0 0;font-size:.85rem}
+  .foot{margin-top:18px;color:var(--ink-soft);font-size:.78rem;max-width:72ch}
+  .foot code{font-family:var(--mono);background:var(--surface-2);padding:.05rem .3rem;border-radius:4px}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">Identity-occupying bots · simulation</p>
+      <h1>Stand-In Demo</h1>
+      <p class="sub">A message comes in while you're away. Watch who answers, what the contact sees, and whether they can tell. Nothing here is connected to a real account — replies are scripted, not generated.</p>
+    </div>
+    <button class="theme" id="theme" type="button">theme</button>
+  </header>
+
+  <div class="controls">
+    <div class="toggle">
+      <div class="meta"><div class="k">You</div><div class="v" id="presLabel">Away</div></div>
+      <button class="switch" id="pres" type="button" data-on="true" aria-pressed="true">away ⇄ here</button>
+    </div>
+    <div class="toggle">
+      <div class="meta"><div class="k">Disclosure</div><div class="v" id="discLabel">Off — appears as you</div></div>
+      <button class="switch warn" id="disc" type="button" data-on="true" aria-pressed="true">undisclosed ⇄ labelled</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <!-- contact's phone -->
+    <section class="phone" aria-label="What the contact sees">
+      <div class="bar">
+        <div class="avatar">I</div>
+        <div class="who"><div class="n">Islav</div><div class="s" id="phoneStatus">online</div></div>
+        <div class="caption">Alex's phone<br>what the contact sees</div>
+      </div>
+      <div class="thread" id="thread"></div>
+      <div class="composer">
+        <div class="chips" id="chips"></div>
+        <div class="inrow">
+          <input id="msg" type="text" placeholder="Message as Alex…" autocomplete="off" aria-label="Type a message as the contact">
+          <button class="send" id="sendBtn" type="button">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ground truth -->
+    <section class="truth" aria-label="Ground truth">
+      <div class="status">
+        <div class="stat"><div class="k">Presence</div><div class="v"><span class="pip" id="presPip"></span><span id="presStat">Away</span></div></div>
+        <div class="stat"><div class="k">Answering</div><div class="v"><span class="pip" id="ansPip"></span><span id="ansStat">Stand-in</span></div></div>
+        <div class="belief" id="belief" data-state="idle">Send a message to see what the contact ends up believing.</div>
+      </div>
+
+      <div class="logwrap">
+        <h2>Decision log</h2>
+        <ul class="log" id="log"><li class="empty">No events yet.</li></ul>
+      </div>
+
+      <div class="rowbtns">
+        <button class="ghost" id="jumpIn" type="button">You return &amp; reply yourself</button>
+        <button class="ghost" id="reset" type="button">Reset</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="rules">
+    <h2>The rule the stand-in runs</h2>
+    <p class="lead">No commands, no control room. Your own messages are the only signal it watches. These four checks decide everything above.</p>
+    <div class="rulegrid">
+      <div class="rule-card"><div class="n">01 · trigger</div><p>A contact writes.</p></div>
+      <div class="rule-card"><div class="n">02 · presence</div><p>If you've typed anywhere recently, you're present — the stand-in stays out.</p></div>
+      <div class="rule-card"><div class="n">03 · handoff</div><p>If you've typed in this thread, it's yours — it stays quiet here.</p></div>
+      <div class="rule-card"><div class="n">04 · answer</div><p>Otherwise it answers in your voice, in your thread.</p></div>
+    </div>
+    <p class="foot">The one thing this demo makes visible: in <b>undisclosed</b> mode the contact's phone looks identical whether you or the stand-in typed — the difference exists only in the right-hand panel, which the contact never sees. Flip <code>Disclosure</code> to labelled and the same reply arrives tagged, which is the position every sanctioned autoresponder takes (a starred Threema ID, a WhatsApp Business away-message, an email vacation reply).</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(s){return document.querySelector(s)};
+  var present=false, disclosed=false, pending=null, convo=[];
+  var thread=$("#thread"), logEl=$("#log");
+
+  // theme toggle (per-viewer convenience only)
+  try{var ts=localStorage.getItem("standin-theme"); if(ts)document.documentElement.setAttribute("data-theme",ts);}catch(e){}
+  $("#theme").addEventListener("click",function(){
+    var cur=document.documentElement.getAttribute("data-theme");
+    var dark=cur?cur==="dark":matchMedia("(prefers-color-scheme:dark)").matches;
+    var next=dark?"light":"dark";
+    document.documentElement.setAttribute("data-theme",next);
+    try{localStorage.setItem("standin-theme",next);}catch(e){}
+  });
+
+  var replies={
+    free:"Got it — I'll come back to you on this shortly.",
+    "Still on for Friday?":"Friday works. Same place, same time.",
+    "Can you send the files today?":"Yeah, I'll get them over this afternoon.",
+    "Free for a quick call?":"Can't talk right now — text me the gist and I'll reply.",
+    "Are you around tonight?":"Should be free after 7, want to meet around then?"
+  };
+  var commitment={"Still on for Friday?":1,"Can you send the files today?":1}; // replies that commit you to something
+  var chips=["Are you around tonight?","Still on for Friday?","Can you send the files today?","Free for a quick call?"];
+
+  function clock(){var d=new Date();return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
+
+  function paintStatus(){
+    $("#presLabel").textContent=present?"Here":"Away";
+    $("#pres").setAttribute("data-on",(!present).toString());
+    $("#pres").setAttribute("aria-pressed",(!present).toString());
+    $("#discLabel").textContent=disclosed?"On — labelled as automated":"Off — appears as you";
+    $("#disc").setAttribute("data-on",(!disclosed).toString());
+    $("#disc").setAttribute("aria-pressed",(!disclosed).toString());
+    $("#presStat").textContent=present?"Here":"Away";
+    $("#presPip").style.background=present?"var(--safe)":"var(--warn)";
+    var ans=present?"You":"Stand-in";
+    $("#ansStat").textContent=ans;
+    $("#ansPip").style.background=present?"var(--safe)":"var(--accent)";
+    $("#phoneStatus").textContent=present?"online":"last seen recently";
+  }
+
+  function addBubble(dir,text,opts){
+    opts=opts||{};
+    var row=document.createElement("div"); row.className="row "+dir;
+    var b=document.createElement("div"); b.className="bubble"; b.textContent=text; row.appendChild(b);
+    if(opts.tag){var t=document.createElement("div");t.className="tag";t.textContent=opts.tag;b.appendChild(document.createElement("br"));b.appendChild(t);}
+    thread.appendChild(row); thread.scrollTop=thread.scrollHeight; return row;
+  }
+
+  function addLog(who,body,rule,warn){
+    var empty=logEl.querySelector(".empty"); if(empty)empty.remove();
+    var li=document.createElement("li"); if(warn)li.className="warn";
+    li.innerHTML='<span class="t">'+clock()+'</span><span class="body"><span class="who-tag">'+who+'</span> '+
+      body+(rule?'<span class="rule">'+rule+'</span>':'')+'</span>';
+    logEl.appendChild(li); logEl.scrollTop=logEl.scrollHeight;
+  }
+
+  function setBelief(state){
+    var el=$("#belief"); el.setAttribute("data-state",state);
+    if(state==="deceived")el.innerHTML='<b>Contact believes this is you.</b> The reply came from the stand-in; nothing on Alex’s phone says so.';
+    else if(state==="known")el.innerHTML='<b>Contact can tell it’s automated.</b> The reply is labelled, so Alex knows you didn’t type it.';
+    else el.textContent="Send a message to see what the contact ends up believing.";
+  }
+
+  function contactSays(text){
+    addBubble("in",text);
+    convo.push({from:"contact",text:text});
+    addLog("CONTACT","“"+text+"”","inbound");
+    // rule 2 + 3
+    if(present){
+      addLog("STAND-IN","stays out","rule 2/3 — you’re present, this is yours");
+      return;
+    }
+    // away -> answer after a beat
+    var typing=document.createElement("div"); typing.className="row in typing";
+    typing.innerHTML='<div class="bubble"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+    thread.appendChild(typing); thread.scrollTop=thread.scrollHeight;
+    pending=setTimeout(function(){
+      typing.remove(); pending=null;
+      var reply=replies[text]||replies.free;
+      addBubble("out",reply, disclosed?{tag:"⟳ auto-reply"}:null);
+      convo.push({from:"standin",text:reply});
+      if(disclosed){
+        addLog("STAND-IN","replied as you — labelled","rule 4 — answered, disclosure on");
+        setBelief("known");
+      }else{
+        var warn=!!commitment[text];
+        addLog("STAND-IN","replied as you — unlabelled",
+          warn?"rule 4 — and the contact now reads this as your commitment":"rule 4 — answered, no disclosure",warn);
+        setBelief("deceived");
+      }
+    }, 850);
+  }
+
+  function jumpIn(){
+    if(pending){clearTimeout(pending);pending=null;var t=thread.querySelector(".typing");if(t)t.remove();}
+    if(!present){present=true;paintStatus();}
+    var msg="— it’s me, taking this one.";
+    addBubble("out",msg);
+    convo.push({from:"you",text:msg});
+    addLog("YOU","replied yourself","human returned — stand-in stands down here");
+    setBelief("idle");
+    $("#belief").textContent="You’re handling this thread now. The stand-in won’t answer here while you’re present.";
+  }
+
+  function reset(){
+    if(pending){clearTimeout(pending);pending=null;}
+    thread.innerHTML=""; convo=[];
+    logEl.innerHTML='<li class="empty">No events yet.</li>';
+    present=false; disclosed=false; paintStatus(); setBelief("idle");
+    addBubble("in","hey");
+    addLog("CONTACT","“hey”","inbound");
+    pending=setTimeout(function(){
+      var r="Hey — what’s up?";
+      addBubble("out",r,disclosed?{tag:"⟳ auto-reply"}:null);
+      addLog("STAND-IN","replied as you — unlabelled","rule 4 — you were away");
+      setBelief("deceived");
+    },700);
+  }
+
+  // wire controls
+  $("#pres").addEventListener("click",function(){present=!present;paintStatus();
+    addLog("YOU",present?"marked present":"went away",present?"you’re back":"silence — stand-in may answer");});
+  $("#disc").addEventListener("click",function(){disclosed=!disclosed;paintStatus();
+    addLog("SYSTEM",disclosed?"disclosure ON":"disclosure OFF",disclosed?"replies will be labelled":"replies will look like you");});
+  $("#jumpIn").addEventListener("click",jumpIn);
+  $("#reset").addEventListener("click",reset);
+  $("#sendBtn").addEventListener("click",function(){var v=$("#msg").value.trim();if(v){contactSays(v);$("#msg").value="";}});
+  $("#msg").addEventListener("keydown",function(e){if(e.key==="Enter"){var v=this.value.trim();if(v){contactSays(v);this.value="";}}});
+
+  var chipBox=$("#chips");
+  chips.forEach(function(c){var b=document.createElement("button");b.className="chip";b.type="button";b.textContent=c;
+    b.addEventListener("click",function(){contactSays(c);});chipBox.appendChild(b);});
+
+  paintStatus(); reset();
+})();
+</script>

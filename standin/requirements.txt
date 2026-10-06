@@ -1,0 +1,4 @@
+matrix-nio>=0.24
+httpx>=0.27
+python-dotenv>=1.0
+matrix-synapse          # test env only

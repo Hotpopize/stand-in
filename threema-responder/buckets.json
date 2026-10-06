@@ -1,0 +1,12 @@
+{
+  "greeting":     {"when": "small talk, hello, how are you",                  "action": "reply"},
+  "availability": {"when": "asking when he's free / can talk / can meet",     "action": "reply",
+                   "template": "He's unreachable right now and will see this when he's back. If it's urgent, say so and I'll flag it."},
+  "known_fact":   {"when": "answerable from the Known facts list",            "action": "reply"},
+  "small_decision": {"when": "a yes/no he'd say yes to per the Known facts (e.g. 'ok to send the invoice to the usual address?')", "action": "reply"},
+  "money_or_commitment": {"when": "prices, deadlines, agreements, anything binding", "action": "ooo"},
+  "urgent":       {"when": "emergency, angry, time-critical",                 "action": "ooo",
+                   "template": "Understood — this is flagged as urgent and he's being notified now."},
+  "personal":     {"when": "family, friends, private matters",                "action": "silent"},
+  "other":        {"when": "anything else",                                   "action": "ooo"}
+}
