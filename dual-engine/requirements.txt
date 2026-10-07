@@ -1,2 +1,5 @@
-httpx>=0.27        # only for the optional LLM render path
-python-dotenv>=1.0  # optional
+httpx>=0.27
+python-dotenv>=1.0
+threema.gateway>=8.0   # official SDK: HMAC, E2E crypto, callback route
+ngrok>=1.0             # exposes the local callback
+aiohttp

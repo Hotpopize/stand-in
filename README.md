@@ -10,11 +10,11 @@ A support assistant that **drafts** replies and **routes** tickets, built as two
 |---|---|---|
 | `dual-engine/` | **The main build.** Intent engine → typed contract → persona engine, plus shadow execution and a semantic circuit breaker. | Runs; invariants tested |
 | `standin/` | The Matrix lab: a stand-in that replies when you're away, labelled by default, with a one-command throwaway homeserver. | Transport verified once, scripted |
-| `threema-responder/` | The original Threema Gateway scaffold. Kept as the *labelled-identity* reference. | Never run against Threema; crypto unverified |
+| `dual-engine/gateway.py` | Threema Gateway transport via the **official SDK** (`threema.gateway`). Labelled `*ID`, hosted on your PC, exposed with ngrok. | Callback route + HMAC rejection verified locally; no live message yet |
 | `demo/` | Published interactive demo of labelled vs. undisclosed replies. | Simulation, scripted replies |
 | `tests/` | Regression suite for the engine invariants. | 11 tests, `pytest -q` |
 
-Deliberately **not** included: the earlier `impersonation-lab` (superseded by `standin/`), the second demo variant, and VPS/Caddy deployment files — all abandoned directions.
+Deliberately **not** included: the earlier `impersonation-lab` (superseded by `standin/`), the second demo variant, VPS/Caddy files, and the hand-rolled Threema crypto (replaced by the official SDK).
 
 ## Walkthrough
 
@@ -50,7 +50,16 @@ LLM_BASE_URL=http://127.0.0.1:11434/v1 LLM_MODEL=llama3.1 python run.py
 ```
 Without it, the persona engine uses a template path and every reply is the KB text wrapped in a greeting. With it, drafts are model-written — and this is the **first unverified path**: it has never been exercised in a recorded run.
 
-### 4. Run the lab (optional, needs `matrix-synapse`)
+### 4. Threema Gateway on your PC (needs a Gateway ID + ngrok token)
+```bash
+cd dual-engine
+python gateway.py keygen           # register the printed PUBLIC key in the Gateway console
+# .env: GATEWAY_ID=*XXXXXXX  GATEWAY_SECRET=...  GATEWAY_PRIVATE_KEY=private:...  NGROK_AUTHTOKEN=...
+python gateway.py                  # prints https://<ngrok>/gateway_callback — paste into the console
+```
+Incoming message → intent → persona → reply sent as an E2E `TextMessage` from your `*ID`. Escalations send nothing. HMAC and decryption are the SDK's, not ours.
+
+### 5. Run the lab (optional, needs `matrix-synapse`)
 ```bash
 cd ../standin && pip install -r requirements.txt
 python testenv.py up        # throwaway Synapse + 3 users + a room, writes .env
@@ -85,7 +94,7 @@ The contract is the whole design: the persona engine is handed **only** `spec.cl
 | Matrix transport (login, session restore, send/receive, own-echo, quiet-after-human) | ✅ once | one scripted scenario on a real Synapse; presence timing was forced (`AWAY_AFTER_MIN=0`) |
 | LLM draft path | ❌ | never run with a model present |
 | Shadow metrics on **held-out** human replies | ❌ | all test cases were authored by the same hand that tuned the rules — see below |
-| Threema Gateway crypto | ❌ | written from memory, never sent a message |
+| Threema Gateway transport (official SDK) | ✅ locally | callback route rejects forged/empty requests (400); keygen works. ❌ no live Gateway message yet |
 
 **The overfitting problem, stated plainly.** The knowledge base, the tickets, the "human" replies, and the adversarial drafts were all written by the same author who then tuned thresholds, the lexicon and the alignment metric until they passed. The results show the code behaves as designed; they do not show it works. The fix is held-out data nobody here wrote — real tickets with the replies people actually sent. Until that exists, every readiness verdict is theatre.
 

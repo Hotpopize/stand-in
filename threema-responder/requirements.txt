@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-httpx
-pynacl
-python-dotenv
-python-multipart
