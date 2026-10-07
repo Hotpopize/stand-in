@@ -39,13 +39,26 @@ def log(**rec):                                                           # 4
     with open("log.jsonl", "a") as f: f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
 
+SEEN, LAST = set(), {}                                                    # dedup + per-sender cooldown
+COOLDOWN = float(os.getenv("COOLDOWN_SEC", "20"))
+
+
 async def on_message(msg):                                                # 1 -> 2 -> 3 -> 4
     text = getattr(msg, "text", None)                                     # receipts/media carry no text
     if not text: return
-    reply = await draft(text)
-    await e2e.TextMessage(conn, text=reply, to_id=msg.from_id).send()     # 3
-    log(from_id=msg.from_id, inbound=text, outbound=reply, model=LLM["model"])
-    print(f"{msg.from_id}: {text!r} -> {reply!r}")
+    mid, who, now = msg.message_id.hex(), msg.from_id, time.time()
+    if mid in SEEN: return                                                # Gateway retry of a message we handled
+    SEEN.add(mid)
+    if now - LAST.get(who, 0) < COOLDOWN:                                 # stop bot-to-bot ping-pong / spam
+        log(from_id=who, inbound=text, skipped="cooldown"); return
+    LAST[who] = now
+    try:
+        reply = await draft(text)                                         # 2
+        await e2e.TextMessage(conn, text=reply, to_id=who).send()         # 3
+        log(from_id=who, inbound=text, outbound=reply, model=LLM["model"])
+        print(f"{who}: {text!r} -> {reply!r}")
+    except Exception as e:                                                # never raise: a non-200 makes Gateway retry = duplicate credits
+        log(from_id=who, inbound=text, error=repr(e)); print(f"{who}: ERROR {e!r}")
 
 
 async def serve():
