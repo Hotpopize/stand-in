@@ -1,6 +1,6 @@
 # stand-in
 
-A support assistant that **drafts** replies and **routes** tickets, built as two engines — one decides *what* to say, one decides *how* it sounds — wrapped in guardrails that decide *when it's allowed to act on its own*. Plus the research lab it grew out of: a messaging stand-in on a server you control.
+A support assistant that **drafts** replies and **routes** tickets, built as two engines — one decides *what* to say, one decides *how* it sounds — wrapped in guardrails that decide *when it's allowed to act on its own*. a messaging stand-in on a server you control.
 
 **Status: prototype.** Everything here runs end-to-end on synthetic data. Nothing has been measured against real tickets or real human replies yet, and no language model has written a draft in any verified run. Treat every "it works" as "the plumbing runs."
 
