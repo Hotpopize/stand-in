@@ -4,6 +4,18 @@ A support assistant that **drafts** replies and **routes** tickets, built as two
 
 **Status: prototype.** Everything here runs end-to-end on synthetic data. Nothing has been measured against real tickets or real human replies yet, and no language model has written a draft in any verified run. Treat every "it works" as "the plumbing runs."
 
+## Step 1 — the minimal build
+
+`step1.py` is the whole thing in one file: receive via the Threema Gateway SDK → draft with any OpenAI-compatible LLM → send from your `*ID` via the SDK → log. Hosted on your PC, exposed with ngrok.
+
+```bash
+pip install -r requirements.txt
+python step1.py keygen      # register the PUBLIC key in the Gateway console
+# .env: GATEWAY_ID GATEWAY_SECRET GATEWAY_PRIVATE_KEY NGROK_AUTHTOKEN LLM_BASE_URL LLM_MODEL
+python step1.py             # paste the printed .../gateway_callback URL into the console
+```
+Chain verified locally with a stub LLM and intercepted send; not yet against a live Gateway.
+
 ## Repo map
 
 | Folder | What it is | State |
